@@ -1,0 +1,44 @@
+{
+  "name": "payment-link-mcp",
+  "version": "1.0.0",
+  "description": "A simple MCP server that creates payment links using Acquired.com API and sends them via email or SMS.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "list-tools": "node index.js tools",
+    "test": "node tests/test-payment-link.js && node tests/test-send-payment-link.js",
+    "start": "node mcpServer.js",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "payment",
+    "acquired",
+    "claude",
+    "ai"
+  ],
+  "author": "Richard Murphy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RichardAcquired/acquired-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RichardAcquired/acquired-mcp/issues"
+  },
+  "homepage": "https://github.com/RichardAcquired/acquired-mcp#readme"
+}
