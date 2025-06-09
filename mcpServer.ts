@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import dotenv from "dotenv";
-import express from "express";
+import express, { Request, Response } from "express";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -10,20 +10,40 @@ import {
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
+  Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import { discoverTools } from "./lib/tools.js";
-
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.resolve(__dirname, ".env") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const SERVER_NAME = "generated-mcp-server";
 
-async function transformTools(tools) {
+interface TransformedTool {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+
+interface ToolWithDefinition extends Tool {
+  definition: {
+    function: {
+      name: string;
+      description?: string;
+      parameters?: {
+        required?: string[];
+        properties?: Record<string, unknown>;
+      };
+    };
+  };
+  function: (args: Record<string, unknown>) => Promise<unknown>;
+}
+
+async function transformTools(tools: ToolWithDefinition[]): Promise<TransformedTool[]> {
   return tools
     .map((tool) => {
       const definitionFunction = tool.definition?.function;
@@ -34,10 +54,10 @@ async function transformTools(tools) {
         inputSchema: definitionFunction.parameters,
       };
     })
-    .filter(Boolean);
+    .filter((tool): tool is TransformedTool => Boolean(tool));
 }
 
-async function setupServerHandlers(server, tools) {
+async function setupServerHandlers(server: Server, tools: ToolWithDefinition[]): Promise<void> {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: await transformTools(tools),
   }));
@@ -48,7 +68,7 @@ async function setupServerHandlers(server, tools) {
     if (!tool) {
       throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${toolName}`);
     }
-    const args = request.params.arguments;
+    const args = request.params.arguments || {};
     const requiredParameters =
       tool.definition?.function?.parameters?.required || [];
     for (const requiredParameter of requiredParameters) {
@@ -73,23 +93,29 @@ async function setupServerHandlers(server, tools) {
       console.error("[Error] Failed to fetch data:", error);
       throw new McpError(
         ErrorCode.InternalError,
-        `API error: ${error.message}`
+        `API error: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   });
 }
 
-async function run() {
+interface ServerInstances {
+  [key: string]: {
+    transport: SSEServerTransport;
+    server: Server;
+  };
+}
+
+export async function run(): Promise<void> {
   const args = process.argv.slice(2);
   const isSSE = args.includes("--sse");
-  const tools = await discoverTools();
+  const tools = await discoverTools() as ToolWithDefinition[];
 
   if (isSSE) {
     const app = express();
-    const transports = {};
-    const servers = {};
+    const instances: ServerInstances = {};
 
-    app.get("/sse", async (_req, res) => {
+    app.get("/sse", async (_req: Request, res: Response) => {
       // Create a new Server instance for each session
       const server = new Server(
         {
@@ -106,25 +132,23 @@ async function run() {
       await setupServerHandlers(server, tools);
 
       const transport = new SSEServerTransport("/messages", res);
-      transports[transport.sessionId] = transport;
-      servers[transport.sessionId] = server;
+      const sessionId = transport.sessionId;
+      instances[sessionId] = { transport, server };
 
       res.on("close", async () => {
-        delete transports[transport.sessionId];
         await server.close();
-        delete servers[transport.sessionId];
+        delete instances[sessionId];
       });
 
       await server.connect(transport);
     });
 
-    app.post("/messages", async (req, res) => {
-      const sessionId = req.query.sessionId;
-      const transport = transports[sessionId];
-      const server = servers[sessionId];
+    app.post("/messages", async (req: Request, res: Response) => {
+      const sessionId = req.query.sessionId as string;
+      const instance = instances[sessionId];
 
-      if (transport && server) {
-        await transport.handlePostMessage(req, res);
+      if (instance) {
+        await instance.transport.handlePostMessage(req, res);
       } else {
         res.status(400).send("No transport/server found for sessionId");
       }
@@ -160,4 +184,4 @@ async function run() {
   }
 }
 
-run().catch(console.error);
+run().catch(console.error); 
