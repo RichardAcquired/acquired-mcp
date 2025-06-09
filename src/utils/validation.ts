@@ -20,11 +20,16 @@ export const validateCurrency = (currency: string): boolean => {
 };
 
 export const paymentLinkSchema = z.object({
-  transaction: z.object({
-    amount: z.number().positive(),
-    currency: z.string().optional(),
-    order_id: z.string().optional()
-  })
+  amount: z.number().positive(),
+  currency: z.string(),
+  reference: z.string(),
+  description: z.string().optional(),
+  customer: z.object({
+    email: z.string().email().optional(),
+    phone: z.string().optional(),
+    name: z.string().optional()
+  }).optional(),
+  expires_at: z.string().optional()
 });
 
 export const sendPaymentLinkSchema = z.object({
@@ -32,8 +37,17 @@ export const sendPaymentLinkSchema = z.object({
   type: z.enum(['email', 'sms']),
   email: z.string().email().optional(),
   phone: z.object({
-    country_code: z.string().optional(),
-    number: z.string()
+    number: z.string(),
+    country_code: z.string().optional()
   }).optional(),
-  message: z.string().min(1)
-}); 
+  message: z.string()
+}).refine(
+  (data) => {
+    if (data.type === 'email') return !!data.email;
+    if (data.type === 'sms') return !!data.phone;
+    return false;
+  },
+  {
+    message: 'Email is required for email type, phone is required for SMS type'
+  }
+); 

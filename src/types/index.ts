@@ -1,13 +1,11 @@
 export interface PaymentLinkResponse {
-  status: string;
+  status: 'success' | 'error';
   link_id: string;
-  full_url?: string;
-  error?: string;
 }
 
 export interface SendPaymentLinkResponse {
-  status: number;
-  message: string;
+  status: 'success' | 'error';
+  message?: string;
   error?: string;
 }
 
@@ -18,11 +16,16 @@ export interface Transaction {
 }
 
 export interface PaymentLinkRequest {
-  transaction: Transaction;
-  redirect_url?: string;
-  payment?: {
-    reference?: string;
+  amount: number;
+  currency: string;
+  reference: string;
+  description?: string;
+  customer?: {
+    email?: string;
+    phone?: string;
+    name?: string;
   };
+  expires_at?: string;
 }
 
 export interface SendPaymentLinkRequest {
@@ -30,8 +33,8 @@ export interface SendPaymentLinkRequest {
   type: 'email' | 'sms';
   email?: string;
   phone?: {
-    country_code: string;
     number: string;
+    country_code?: string;
   };
   message: string;
 }

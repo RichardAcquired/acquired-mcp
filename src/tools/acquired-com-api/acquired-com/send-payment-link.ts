@@ -1,156 +1,91 @@
-import { getAccessToken } from './payment-link.js';
-import { SendPaymentLinkRequest, SendPaymentLinkResponse } from '../../../types/index.js';
+import { z } from 'zod';
+import { getApiUrl } from '../../../config/index.js';
 import { sendPaymentLinkSchema } from '../../../utils/validation.js';
+import { getBearerToken } from '../../../utils/acquired-auth.js';
+import { makeApiRequest, ApiError } from '../../../utils/api-utils.js';
+import type { SendPaymentLinkRequest, SendPaymentLinkResponse } from '../../../types/index.js';
 
-/**
- * Function to send a payment link via email or SMS using Acquired.com API.
- */
-const executeFunction = async ({
-  link_id,
-  type,
-  email,
-  phone,
-  message
-}: SendPaymentLinkRequest): Promise<SendPaymentLinkResponse> => {
-  const url = `https://test-api.acquired.com/v1/payment-links/${link_id}/send`;
-  const companyId = '';
-  const mid = '';
+const sendPaymentLinkResponseSchema = z.object({
+  status: z.number(),
+  message: z.string()
+});
 
-  try {
-    // Validate input using Zod schema
-    const validationResult = sendPaymentLinkSchema.safeParse({ link_id, type, email, phone, message });
-    if (!validationResult.success) {
-      return { 
-        status: 0,
-        message: validationResult.error.message 
-      };
-    }
-
-    // Format phone number for UK (country code 44)
-    let formattedPhone = null;
-    const countryCode = '44'; // API requires UK country code
-
-    if (phone) {
-      // Remove leading 0 from the number
-      formattedPhone = phone.number.toString().replace(/^0+/, '');
-      
-      // If the number starts with 44, remove it as we'll add it back
-      if (formattedPhone.startsWith('44')) {
-        formattedPhone = formattedPhone.substring(2);
-      }
-    }
-
-    // Prepare the request body
-    const body = {
-      link_id,
-      type,
-      ...(type === 'email' && email ? { email } : {}),
-      ...(type === 'sms' && formattedPhone ? { 
-        phone: {
-          country_code: countryCode,
-          number: formattedPhone
-        }
-      } : {}),
-      ...(message ? { message } : {})
-    };
-
-    console.log('Request body:', JSON.stringify(body, null, 2));
-
-    // Get access token
-    const accessToken = await getAccessToken();
-
-    // Set up headers for the request
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-      'Company-Id': companyId,
-      'Mid': mid
-    };
-
-    // Perform the fetch request
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body)
-    });
-
-    // Check if the response was successful
-    if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        errorData = await response.text();
-      }
-      console.error('API Error Response:', errorData);
-      throw new Error(JSON.stringify(errorData));
-    }
-
-    // Parse and return the response data
-    const data = await response.json() as SendPaymentLinkResponse;
-    return data;
-  } catch (error) {
-    console.error('Error sending payment link:', error);
-    return { 
-      status: 0,
-      message: error instanceof Error ? error.message : 'An error occurred while sending the payment link.'
-    };
-  }
-};
-
-/**
- * Tool configuration for sending a payment link using Acquired.com API.
- */
-const apiTool = {
-  function: executeFunction,
-  definition: {
-    type: 'function',
-    function: {
-      name: 'send_payment_link',
-      description: 'Send a payment link via email or SMS using Acquired.com API.',
-      parameters: {
+export const apiTool = {
+  name: 'send_payment_link',
+  description: 'Send a payment link via email or SMS using the Acquired.com API',
+  parameters: {
+    type: 'object',
+    properties: {
+      link_id: { type: 'string', description: 'The ID of the payment link to send' },
+      type: { 
+        type: 'string', 
+        enum: ['email', 'sms'],
+        description: 'The type of notification to send'
+      },
+      email: { 
+        type: 'string', 
+        description: 'The recipient\'s email address (required for email type)'
+      },
+      phone: {
         type: 'object',
         properties: {
-          link_id: {
-            type: 'string',
-            description: 'The ID of the payment link to send.'
-          },
-          type: {
-            type: 'string',
-            description: "The media type to use for sending ('email' or 'sms').",
-            enum: ['email', 'sms']
-          },
-          email: {
-            type: 'string',
-            description: 'Email address to send the payment link to (for type email).'
-          },
-          phone: {
-            type: 'object',
-            properties: {
-              country_code: {
-                type: 'string',
-                description: 'Country code for the phone number (e.g., "44" for UK).'
-              },
-              number: {
-                type: 'string',
-                description: 'Phone number without leading 0 (e.g., "7763270200" for UK number).'
-              }
-            },
-            required: ['number']
-          },
-          message: {
-            type: 'string',
-            description: 'The message to include with the payment link.'
-          }
+          number: { type: 'string', description: 'The recipient\'s phone number (required for SMS type)' },
+          country_code: { type: 'string', description: 'The country code (optional)' }
         },
-        required: ['link_id', 'type', 'message'],
-        oneOf: [
-          { required: ['email'], properties: { type: { const: 'email' } } },
-          { required: ['phone'], properties: { type: { const: 'sms' } } }
-        ]
+        required: ['number']
+      },
+      message: { type: 'string', description: 'The message to send with the payment link' }
+    },
+    required: ['link_id', 'type', 'message']
+  },
+  function: async (params: SendPaymentLinkRequest): Promise<SendPaymentLinkResponse> => {
+    try {
+      // Validate input parameters
+      const validatedParams = sendPaymentLinkSchema.parse(params);
+
+      // Prepare request body
+      const requestBody = {
+        link_id: validatedParams.link_id,
+        type: validatedParams.type,
+        message: validatedParams.message,
+        ...(validatedParams.type === 'email' && { email: validatedParams.email }),
+        ...(validatedParams.type === 'sms' && { 
+          phone: {
+            number: validatedParams.phone?.number.replace(/^0/, '44'),
+            country_code: validatedParams.phone?.country_code || '44'
+          }
+        })
+      };
+
+      // Get Bearer token
+      const accessToken = await getBearerToken();
+
+      // Make API request using the utility function
+      const { data } = await makeApiRequest(
+        `payment-links/${validatedParams.link_id}/send`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: requestBody,
+          schema: sendPaymentLinkResponseSchema
+        }
+      );
+
+      return {
+        status: data.status === 1 ? 'success' : 'error',
+        message: data.message
+      };
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
       }
+      throw new ApiError(
+        'Failed to send payment link',
+        500,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     }
   }
-};
-
-export { apiTool, executeFunction }; 
+}; 
