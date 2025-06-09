@@ -1,18 +1,21 @@
 # Acquired.com Payment Link MCP Server
 
-A Model Context Provider (MCP) server that enables AI assistants to create and send payment links using the Acquired.com API.
+A TypeScript-based Model Context Provider (MCP) server for creating and sending payment links using the Acquired.com API.
 
 ## Features
 
-- Create payment links with customizable amounts and metadata
+- Create payment links with customizable amounts
 - Send payment links via email or SMS
-- MCP-compatible for use with AI assistants like Claude
-- Simple command-line interface for testing and development
+- TypeScript support with proper type definitions
+- Input validation using Zod schemas
+- UK phone number formatting support
+- Environment variable configuration
+- Source maps for debugging
 
 ## Prerequisites
 
-- Node.js v18 or higher
-- npm
+- Node.js >= 18.0.0
+- npm or yarn
 - Acquired.com API credentials
 
 ## Installation
@@ -28,149 +31,84 @@ cd acquired-mcp
 npm install
 ```
 
-3. Configure environment variables:
-Create a `.env` file in the root directory with your Acquired.com API credentials:
-```
+3. Create a `.env` file with your API credentials:
+```env
 ACQUIRED_COM_APP_ID=your_app_id
 ACQUIRED_COM_APP_KEY=your_app_key
 ```
 
 ## Usage
 
-### Command Line Interface
+### Building the Project
 
-List available tools:
 ```bash
-npm run list-tools
+npm run build
 ```
 
-### Creating Payment Links
+### Running the Server
 
-The `create_payment_link` tool allows you to create payment links with the following parameters:
+```bash
+npm start
+```
 
-- `amount` (required): The payment amount in pounds (e.g., 20.00 for £20.00)
-- `currency` (optional): The currency code (defaults to GBP)
-- `order_id` (optional): A unique identifier for the order
-- `customer_id` (optional): The customer's ID
-- `submit_type` (optional): The type of submission (defaults to 'payment')
+### Development Mode
 
-Example:
-```javascript
-const result = await create_payment_link({
-  amount: 20.00,
-  order_id: 'order_123',
-  customer_id: 'cust_456'
+```bash
+npm run dev
+```
+
+## API Usage
+
+### Creating a Payment Link
+
+```typescript
+import { apiTool } from './dist/tools/acquired-com-api/acquired-com/payment-link.js';
+
+const result = await apiTool.function({
+  transaction: {
+    amount: 45.00,
+    currency: 'GBP'
+  }
 });
 ```
 
-### Sending Payment Links
+### Sending a Payment Link
 
-The `send_payment_link` tool allows you to send payment links via email or SMS:
+```typescript
+import { apiTool } from './dist/tools/acquired-com-api/acquired-com/send-payment-link.js';
 
-- `type` (required): The type of notification ('email' or 'sms')
-- `message` (required): The message to send with the payment link
-- `email` (required for email): The recipient's email address
-- `phone` (required for SMS): The recipient's phone number
-- `payment_link_id` (required): The ID of the payment link to send
-
-Example:
-```javascript
-const result = await send_payment_link({
+// Via Email
+const emailResult = await apiTool.function({
+  link_id: 'your_link_id',
   type: 'email',
-  message: 'Please complete your payment',
-  email: 'customer@example.com',
-  payment_link_id: 'pl_123'
+  email: 'recipient@example.com',
+  message: 'Your payment link'
 });
-```
 
-## Integration with Claude
-
-1. Get the required values for Claude Desktop configuration:
-
-   a. Get the full path to Node.js:
-   ```bash
-   which node
-   ```
-   This will output something like `/usr/local/bin/node` or `/opt/homebrew/bin/node`
-
-   b. Get the full path to mcpServer.js:
-   ```bash
-   realpath mcpServer.js
-   ```
-   This will output the absolute path to your mcpServer.js file
-
-2. Add the MCP server configuration to Claude Desktop:
-   - Open Settings → Developers → Edit Config
-   - Add the following configuration, replacing the paths with your actual values:
-   ```json
-   {
-     "mcpServers": {
-       "payment-link": {
-         "command": "/path/to/node",
-         "args": ["/path/to/mcpServer.js"]
-       }
-     }
-   }
-   ```
-
-   For example, if your paths are:
-   - Node.js: `/usr/local/bin/node`
-   - mcpServer.js: `/Users/username/projects/acquired-mcp/mcpServer.js`
-
-   Your configuration would be:
-   ```json
-   {
-     "mcpServers": {
-       "payment-link": {
-         "command": "/usr/local/bin/node",
-         "args": ["/Users/username/projects/acquired-mcp/mcpServer.js"]
-       }
-     }
-   }
-   ```
-
-3. Restart Claude Desktop
-4. Start a new conversation and enable the payment-link MCP server
-
-## Development
-
-### Project Structure
-
-```
-payment-link-mcp/
-├── commands/          # CLI commands
-├── lib/              # Shared utilities
-├── tools/            # MCP tools
-│   └── acquired-com-api/
-│       └── acquired-com/
-│           ├── payment-link.js
-│           └── send-payment-link.js
-├── tests/            # Test files
-├── .env              # Environment variables
-├── .gitignore
-├── index.js          # CLI entry point
-├── mcpServer.js      # MCP server
-└── package.json
-```
-
-### Running Tests
-
-```bash
-npm test
+// Via SMS
+const smsResult = await apiTool.function({
+  link_id: 'your_link_id',
+  type: 'sms',
+  phone: {
+    number: '07763270200'  // UK number format
+  },
+  message: 'Your payment link'
+});
 ```
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## Acknowledgments
 
-For support, please open an issue in the GitHub repository.
+- Acquired.com for providing the API
+- The MCP community for their support and feedback
