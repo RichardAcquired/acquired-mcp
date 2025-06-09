@@ -1,0 +1,81 @@
+import { Command } from "commander";
+import { discoverTools } from "../lib/tools.js";
+import { Tool } from "@modelcontextprotocol/sdk/types.js";
+
+interface GroupedTools {
+  [workspace: string]: {
+    [collection: string]: ToolWithPath[];
+  };
+}
+
+interface ToolWithPath extends Tool {
+  path: string;
+  definition: {
+    function: {
+      name: string;
+      description?: string;
+      parameters?: {
+        properties?: Record<string, unknown>;
+      };
+    };
+  };
+}
+
+export function registerToolsCommand(program: Command): void {
+  program
+    .command("tools")
+    .description("List all available API tools")
+    .action(async () => {
+      const tools = await discoverTools() as ToolWithPath[];
+      if (tools.length === 0) {
+        console.log("No tools found. Tools should be organized as:");
+        console.log("tools/workspace/collection/request.js\n");
+        return;
+      }
+
+      console.log("\nAvailable Tools:\n");
+
+      // Group tools by workspace/collection
+      const groupedTools = tools.reduce<GroupedTools>((acc, tool) => {
+        // Extract workspace and collection from path
+        const parts = tool.path.split("/");
+        const workspace = parts[1] || "Unknown Workspace";
+        const collection = parts[2] || "Unknown Collection";
+
+        if (!acc[workspace]) acc[workspace] = {};
+        if (!acc[workspace][collection]) acc[workspace][collection] = [];
+
+        acc[workspace][collection].push(tool);
+        return acc;
+      }, {});
+
+      // Print tools in a hierarchical structure
+      for (const [workspace, collections] of Object.entries(groupedTools)) {
+        console.log(`Workspace: ${workspace}`);
+        for (const [collection, tools] of Object.entries(collections)) {
+          console.log(`  Collection: ${collection}`);
+          tools.forEach((tool: ToolWithPath) => {
+            const { name, description, parameters } = tool.definition.function;
+            console.log(`    ${name}`);
+            console.log(
+              `      Description: ${description || "No description provided"}`
+            );
+            if (parameters?.properties) {
+              console.log("      Parameters:");
+              Object.entries(parameters.properties).forEach(
+                ([name, details]: [string, any]) => {
+                  console.log(
+                    `        - ${name}: ${
+                      details.description || "No description"
+                    }`
+                  );
+                }
+              );
+            }
+            console.log("");
+          });
+        }
+        console.log("");
+      }
+    });
+} 

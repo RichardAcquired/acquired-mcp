@@ -1,17 +1,26 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "rootDir": "./",
     "strict": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "allowJs": true,
+    "resolveJsonModule": true,
     "declaration": true,
     "sourceMap": true
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*",
+    "commands/**/*",
+    "lib/**/*",
+    "tools/**/*",
+    "index.ts",
+    "mcpServer.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 } 

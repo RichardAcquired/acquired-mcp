@@ -3,11 +3,12 @@
   "version": "1.0.1",
   "description": "Acquired.com Payment Link MCP Server",
   "type": "module",
-  "main": "dist/tools/acquired-com-api/acquired-com/payment-link.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/tools/acquired-com-api/acquired-com/payment-link.js",
+    "start": "node dist/index.js",
     "dev": "tsc -w",
+    "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -19,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
+    "commander": "^11.1.0",
     "dotenv": "^16.4.5",
     "express": "^5.1.0",
     "zod": "^3.22.4"
