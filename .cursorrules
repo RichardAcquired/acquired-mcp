@@ -1,0 +1,159 @@
+{
+  "name": "Payment Gateway MCP Server Rules",
+  "version": "1.0.0",
+  "description": "Rules for building a Model Context Protocol (MCP) server with payment gateway integration",
+  "rules": {
+    "project_structure": {
+      "required_directories": [
+        "src/",
+        "src/typescript/",
+        "src/python/",
+        "tests/",
+        "docs/",
+        "examples/"
+      ],
+      "file_naming": {
+        "typescript": "kebab-case.ts",
+        "python": "snake_case.py",
+        "test_files": "*.test.ts or *_test.py"
+      }
+    },
+    "typescript": {
+      "version": ">=4.9.0",
+      "strict_mode": true,
+      "compiler_options": {
+        "target": "ES2020",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
+      },
+      "dependencies": {
+        "required": [
+          "@modelcontextprotocol/sdk",
+          "typescript",
+          "express",
+          "dotenv"
+        ]
+      },
+      "code_style": {
+        "indentation": 2,
+        "quotes": "single",
+        "semicolons": true,
+        "max_line_length": 100
+      }
+    },
+    "python": {
+      "version": ">=3.11.0",
+      "dependencies": {
+        "required": [
+          "fastapi",
+          "pydantic",
+          "python-dotenv",
+          "httpx"
+        ]
+      },
+      "code_style": {
+        "indentation": 4,
+        "max_line_length": 88,
+        "docstring_style": "google"
+      }
+    },
+    "api_standards": {
+      "endpoints": {
+        "naming": "kebab-case",
+        "versioning": "v1",
+        "authentication": "required",
+        "rate_limiting": "required"
+      },
+      "error_handling": {
+        "standard_errors": true,
+        "error_codes": "required",
+        "error_messages": "descriptive"
+      },
+      "response_format": {
+        "success": {
+          "status": "success",
+          "data": "payload"
+        },
+        "error": {
+          "status": "error",
+          "error": {
+            "code": "string",
+            "message": "string"
+          }
+        }
+      }
+    },
+    "payment_gateway": {
+      "integration": {
+        "abstraction_layer": "required",
+        "error_handling": "comprehensive",
+        "retry_logic": "required",
+        "logging": "detailed"
+      },
+      "security": {
+        "api_keys": "environment_variables",
+        "encryption": "required",
+        "pci_compliance": "required"
+      },
+      "features": {
+        "required": [
+          "payment_processing",
+          "refund_handling",
+          "webhook_support",
+          "error_recovery"
+        ]
+      }
+    },
+    "testing": {
+      "coverage": {
+        "minimum": 80,
+        "critical_paths": 100
+      },
+      "types": {
+        "unit": "required",
+        "integration": "required",
+        "e2e": "recommended"
+      },
+      "mocking": {
+        "payment_gateway": "required",
+        "external_services": "required"
+      }
+    },
+    "documentation": {
+      "required": [
+        "README.md",
+        "API.md",
+        "SETUP.md",
+        "CONTRIBUTING.md"
+      ],
+      "code_documentation": {
+        "typescript": "JSDoc",
+        "python": "docstrings"
+      }
+    },
+    "security": {
+      "required": [
+        "input_validation",
+        "output_sanitization",
+        "rate_limiting",
+        "authentication",
+        "authorization"
+      ],
+      "sensitive_data": {
+        "handling": "encrypted",
+        "storage": "secure",
+        "transmission": "https"
+      }
+    },
+    "deployment": {
+      "environment_variables": "required",
+      "logging": "structured",
+      "monitoring": "required",
+      "health_checks": "required"
+    }
+  }
+} 
