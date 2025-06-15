@@ -161,6 +161,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 For support, please:
-1. Check the [documentation](docs/)
-2. Open an [issue](https://github.com/RichardAcquired/acquired-mcp/issues)
-3. Contact Acquired.com support for API-related questions
+1. Check the [Acquired.com documentation](https://docs.acquired.com)
+2. Open an [issue](https://github.com/RichardAcquired/acquired-mcp/issues) for questions or bug reports
+3. Review existing issues and discussions in the [GitHub repository](https://github.com/RichardAcquired/acquired-mcp)
